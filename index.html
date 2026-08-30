@@ -1,0 +1,1076 @@
+<title>GATE Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+:root {
+  --bg:        #e9eaec;
+  --ink:       #23262b;
+  --muted:     #6a6f78;
+  --line:      #c9ccd2;
+  --panel-2:   #f4f5f7;
+  --accent:    #2f6ad0;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #16181c; --ink: #e4e6ea; --muted: #949aa4;
+    --line: #31353c; --panel-2: #1e2126; --accent: #79a6f2;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #16181c; --ink: #e4e6ea; --muted: #949aa4;
+  --line: #31353c; --panel-2: #1e2126; --accent: #79a6f2;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 14px; line-height: 1.5; margin: 0;
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px; padding: 28px 16px;
+}
+.masthead { text-align: center; display: flex; flex-direction: column; gap: 3px; }
+.masthead h1 { font-size: 17px; font-weight: 600; margin: 0; letter-spacing: -.01em; }
+.masthead p { margin: 0; color: var(--muted); font-size: 12.5px; }
+
+/* ══ the replica — every value copied from the official calclayout.css.
+   A single committed look: the real calculator is this grey everywhere. ══ */
+#keyPad {
+  background: #dadada; border: 1px solid #aaa; border-bottom: 7px solid #999;
+  border-radius: 5px; box-shadow: 0 0 15px 0 rgba(0,0,0,.1) inset;
+  width: 463px; max-width: 100%; padding: 0; position: relative;
+  font-family: Arial, Helvetica, sans-serif; color: #444;
+  -webkit-user-select: none; user-select: none; flex: none;
+}
+#helptopDiv {
+  margin-bottom: 5px; padding: 10px; background-color: #4286f3;
+  color: #fff; font-size: 16px; line-height: normal; border-radius: 4px 4px 0 0;
+}
+.winbtn { position: absolute; color: #fff; font-size: 12px; font-weight: bold;
+  line-height: 25px; text-align: center; top: 8px; opacity: .9; }
+.winbtn.min { right: 42px; top: 4px; font-size: 18px; }
+.winbtn.close { right: 12px; top: 2px; font-size: 18px; }
+#mainContentArea { padding: 10px; }
+.keyPad_TextBox, .keyPad_TextBox1 {
+  background: #fff; border-color: #aaa; border-style: solid; border-width: 1px 1px 3px;
+  border-radius: 3px; font-size: 20px; height: 30px; line-height: 30px;
+  text-align: right; text-indent: 10px; width: 434px; max-width: 100%; display: block;
+  margin-bottom: 7px; padding-right: 5px; color: #000;
+  font-family: Arial, Helvetica, sans-serif; overflow: hidden; white-space: nowrap;
+}
+.text_container { position: relative; }
+#memory { position: absolute; left: 6px; top: 3px; font-size: 13px; color: #000;
+  opacity: 0; transition: opacity .3s; }
+#memory.on { opacity: 1; }
+.calc_row { display: block; overflow: hidden; margin-bottom: 5px; }
+#keyPad a.k {
+  background: #f1f1f1; border-color: #aaa; border-style: solid; border-width: 1px 1px 3px;
+  border-radius: 4px; color: #444; cursor: pointer; float: left;
+  font-size: 12px; font-weight: bold; height: 25px; line-height: 20px;
+  margin-right: 5px; text-align: center; text-decoration: none;
+  vertical-align: middle; width: 35px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+/* Their .last rule: without it row 1 is 445px inside a 441px area and wraps. */
+#keyPad .calc_row > :last-child { margin-right: 0; }
+#keyPad a.k.min { font-size: 10.5px; }
+#keyPad a.k:hover { background: #eaeaea; }
+#keyPad a.k:active, #keyPad a.k.flash { border-bottom: 1px solid #aaa; position: relative; top: 2px; }
+#keyPad a.k:focus-visible { outline: 2px solid #4286f3; outline-offset: 1px; }
+#keyPad a.k.red { background: #e74c3c; color: #fff; border-color: #c0392b; }
+#keyPad a.k.wide { width: 76px; }
+#keyPad a.k.blank { visibility: hidden; }
+#keyPad a.k.enter {
+  background: #2ecc71; border-color: #27ae60; color: #fff; font-size: 20px;
+  width: 35px; height: 53px; position: absolute; right: 10px; bottom: 17px;
+  float: none; margin: 0;
+}
+/* The official forces its Enter key to stay put while pressed:
+   `position:absolute !important; bottom:17px !important`. Without that, the
+   generic :active rule above gives this absolutely-positioned button a `top`,
+   which overrides its `bottom` — it leaps to the top of the pad on mousedown,
+   so the mouseup lands on empty space and NO CLICK EVENT EVER FIRES. */
+#keyPad a.k.enter:active, #keyPad a.k.enter.flash {
+  position: absolute; top: auto; bottom: 17px;
+}
+.degree_radian { float: left; height: 25px; width: 80px; font-size: 9px;
+  margin-top: 4px; margin-right: 5px; display: flex; align-items: center; gap: 2px; }
+.degree_radian label { display: inline-flex; align-items: center; cursor: pointer; gap: 1px; }
+.degree_radian input { margin: 0 2px 0 0; accent-color: #1667d6; }
+.sup { font-size: .7em; position: relative; top: -.5em; }
+.sub { font-size: .7em; position: relative; top: .5em; }
+
+/* ══ the strip underneath, for reporting anything that looks wrong ══ */
+.tray {
+  width: 463px; max-width: 100%;
+  display: flex; flex-direction: column; gap: 7px;
+}
+.tray .label {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+}
+.tray .seq {
+  font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12px;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px;
+  padding: 8px 10px; color: var(--muted); overflow-wrap: anywhere;
+  max-height: 76px; overflow-y: auto; min-height: 34px;
+}
+.tray .actions { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
+button.act {
+  font-family: inherit; font-size: 12px; cursor: pointer; color: var(--ink);
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px;
+  padding: 4px 10px;
+}
+button.act:hover { border-color: var(--muted); }
+button.act:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.hint { color: var(--muted); font-size: 11.5px; margin-left: auto; }
+.hint kbd {
+  font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 10.5px;
+  border: 1px solid var(--line); border-radius: 3px; padding: 0 3px; background: var(--panel-2);
+}
+/* ══ Help panel — geometry, type and heading colours taken from the official.
+   Its scroll area is 435x263 inside the same 10px padding, which is what makes
+   the window 334.5px tall in this view. The Help/Back pills are the two blues
+   sampled out of their Sprite.png. ══ */
+#helpContent {
+  display: none;
+  width: 435px; max-width: 100%; height: 263px;
+  overflow-y: auto; overflow-x: hidden;
+  padding: 10px; margin-right: 6px;
+  font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #000;
+  background: transparent; line-height: normal;
+}
+#keyPad.help-open #helpContent { display: block; }
+#keyPad.help-open .calc-view { display: none; }
+#keyPad.help-open a.k.enter { display: none; }
+#helpContent h3 { font-size: 15.21px; font-weight: 700; margin: 15.21px 0; color: #000; }
+#helpContent h3.hc-title { text-align: center; }
+#helpContent h3.hc-title strong { font-weight: 900; }
+#helpContent .hc-dos    { color: #008000; text-decoration: underline; }
+#helpContent .hc-donts  { color: #ff0000; text-decoration: underline; }
+#helpContent .hc-limits { color: #000000; text-decoration: underline; }
+#helpContent ul { margin: 1em 0; padding-left: 40px; list-style: disc outside; }
+#helpContent li { margin: 0; padding: 0; display: list-item; }
+#helpContent p { margin: 0; }
+#helpContent strong { font-weight: bold; }
+#helpContent .hc-sub { display: block; font-weight: bold; }
+.winbtn.help, .winbtn.back {
+  right: 79px; top: 7px; width: 54px; height: 25px; line-height: 23px;
+  border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: bold;
+}
+.winbtn.help { background: #57bff4; color: #0d3550; }
+.winbtn.back { background: #4a6fcc; color: #ffffff; display: none; }
+.winbtn.help:focus-visible, .winbtn.back:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
+#keyPad.help-open .winbtn.help { display: none; }
+#keyPad.help-open .winbtn.back { display: block; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="masthead">
+  <h1>GATE calculator</h1>
+  <p>A port of the official TCS iON engine — same arithmetic, same rounding, same error strings.</p>
+</div>
+
+<div id="keyPad">
+  <div id="helptopDiv">
+    <span>Scientific Calculator</span>
+    <div class="winbtn help" id="helpBtn" role="button" tabindex="0">Help</div>
+    <div class="winbtn back" id="helpBack" role="button" tabindex="0">Back</div>
+    <div class="winbtn min">–</div>
+    <div class="winbtn close">✕</div>
+  </div>
+  <div id="mainContentArea">
+    <div class="calc-view">
+      <div class="keyPad_TextBox1" id="exprBox"></div>
+      <div class="text_container">
+        <div class="keyPad_TextBox" id="dispBox">0</div>
+        <span id="memory">M</span>
+      </div>
+      <div id="pad"></div>
+    </div>
+      <div id="helpContent">
+        <h3 class="hc-title"><strong>Calculator Instructions</strong></h3>
+        <p>Performs basic and advanced mathematical operations such as modulus,
+        square root, cube root, trigonometric, exponential, logarithmic and
+        hyperbolic functions, etc.<br>
+        Operate the calculator with your mouse, using the buttons on screen.</p>
+
+        <h3><span class="hc-dos">Do's:</span></h3>
+        <ul>
+          <li>Press [C] before starting a new calculation.</li>
+          <li>Enter an equation using parentheses along with the other mathematical operators.</li>
+          <li>Use the built-in operations such as p (Pi), log and Exp to save time during a calculation.</li>
+          <li>Use the memory keys to build up cumulative totals.
+            <span class="hc-sub">[M+]: Adds the displayed value to memory.</span>
+            <span class="hc-sub">[MR]: Recalls the value held in memory.</span>
+            <span class="hc-sub">[M-]: Subtracts the displayed value from memory.</span>
+          </li>
+          <li>Choose the angle unit (Deg or Rad) before beginning any calculation.
+            <span class="hc-sub">Note: By default the angle unit is set to Degree</span>
+          </li>
+        </ul>
+
+        <h3><span class="hc-donts">Dont's:</span></h3>
+        <ul>
+          <li>Perform several operations together.</li>
+          <li>Leave parentheses unbalanced.</li>
+          <li>Change the angle unit (Deg or Rad) part-way through a calculation.</li>
+        </ul>
+
+        <h3><span class="hc-limits">Limitations:</span></h3>
+        <ul>
+          <li>Keyboard operation is disabled.</li>
+          <li>The output for a Factorial calculation is precise up to 14 digits.</li>
+          <li>The output for Logarithmic and Hyperbolic calculations is precise up to 5 digits.</li>
+          <li>Modulus (mod) performed on decimal numbers with 15 digits would not be precise.
+            <span class="hc-sub">&nbsp;</span>
+            <strong>Use mod only where the number has fewer than 15 digits &mdash; it gives
+            its best results on smaller numbers.</strong>
+          </li>
+          <li>The range of value supported by the calculator is 10(-323) to 10(308).</li>
+        </ul>
+      </div>
+  </div>
+</div>
+
+<div class="tray">
+  <div class="label">Keys pressed</div>
+  <div class="seq" id="log"></div>
+  <div class="actions">
+    <button class="act" id="copy">Copy</button>
+    <button class="act" id="reset">Clear all</button>
+    <span class="hint">Mouse only &mdash; the exam calculator disables the keyboard.</span>
+  </div>
+</div>
+
+<script>
+/**
+ * The GATE virtual scientific calculator, as logic only.
+ *
+ * This is a deliberate PORT of the official TCS iON calculator's own engine
+ * (OnlineAssessment/ScientificCalculator/js/oscZenoedited.js), not a
+ * reimplementation from its observable behaviour. Candidates get the official
+ * one in the exam, so "correct" here means "identical to theirs", quirks and
+ * arithmetic bugs included. Where their code does something odd, the oddity is
+ * reproduced and a comment says so; do not tidy these up.
+ *
+ * The five things an earlier build got wrong, all settled by reading the source:
+ *
+ *   1. UNARY KEYS APPLY IMMEDIATELY. `30 sin` shows 0.5 the moment sin is
+ *      pressed. They are not function tokens awaiting a bracket, so there is
+ *      no `sin(` and no arity. Binary operators DO stack with precedence, so
+ *      2+3*4 is still 14; the calculator is a hybrid, not an expression parser.
+ *   2. `%`, `Exp`, `x^y`, `ʸ√x`, `log_y x` and `mod` are BINARY INFIX. You
+ *      press `8 ʸ√x 3 =`, and the radicand comes first: nthroot(8, 3) = 2.
+ *      `log_y x` is log(first)/log(second), so `8 log_y x 2 =` is 3.
+ *      `%` is `a/100*b` — `50 % 20` is 10, not 0.5.
+ *   3. RESULTS ARE ROUNDED. Every binary and unary result goes through the
+ *      shortest-round-trip search in `format()` below. Design doc §6.2 was
+ *      right that rounding happens and wrong about the rule; printing raw
+ *      doubles is what would differ from the official calculator.
+ *   4. Non-integer factorial returns a Lanczos gamma(n+1), not NaN.
+ *   5. Errors read "Math Error" and "Infinity", and once either is on the
+ *      display almost every key is ignored until C.
+ *
+ * Deg/Rad is read at press time, which is why the official Help can say that
+ * changing it mid-calculation only affects the next operation.
+ */
+
+// ── the grid (verified against a screenshot of the official calculator) ─────
+// `key` is what you pass to press(). `label` is what the button shows.
+// `span` is width in columns; `=` also spans two rows.
+const LAYOUT = [
+  [{key:'mod',label:'mod'},{key:'angle',label:'Deg/Rad',kind:'radio',span:2},
+   null,{key:'',label:''},{key:'',label:''},
+   {key:'MC',label:'MC',kind:'mem'},{key:'MR',label:'MR',kind:'mem'},
+   {key:'MS',label:'MS',kind:'mem'},{key:'M+',label:'M+',kind:'mem'},
+   {key:'M-',label:'M-',kind:'mem'}],
+
+  [{key:'sinh',label:'sinh'},{key:'cosh',label:'cosh'},{key:'tanh',label:'tanh'},
+   {key:'Exp',label:'Exp'},{key:'(',label:'('},{key:')',label:')'},
+   {key:'back',label:'←',span:2,kind:'red'},{key:'C',label:'C',kind:'red'},
+   {key:'neg',label:'+/-',kind:'red'},{key:'sqrt',label:'√'}],
+
+  [{key:'asinh',label:'sinh⁻¹'},{key:'acosh',label:'cosh⁻¹'},{key:'atanh',label:'tanh⁻¹'},
+   {key:'log2',label:'log₂x'},{key:'ln',label:'ln'},{key:'log',label:'log'},
+   {key:'7',label:'7'},{key:'8',label:'8'},{key:'9',label:'9'},
+   {key:'/',label:'/'},{key:'%',label:'%'}],
+
+  [{key:'pi',label:'π'},{key:'e',label:'e'},{key:'fact',label:'n!'},
+   {key:'logy',label:'log_y x'},{key:'exp',label:'eˣ'},{key:'pow10',label:'10ˣ'},
+   {key:'4',label:'4'},{key:'5',label:'5'},{key:'6',label:'6'},
+   {key:'*',label:'*'},{key:'recip',label:'1/x'}],
+
+  [{key:'sin',label:'sin'},{key:'cos',label:'cos'},{key:'tan',label:'tan'},
+   {key:'^',label:'xʸ'},{key:'cube',label:'x³'},{key:'sqr',label:'x²'},
+   {key:'1',label:'1'},{key:'2',label:'2'},{key:'3',label:'3'},
+   {key:'-',label:'-'},{key:'=',label:'=',kind:'green',rowSpan:2}],
+
+  [{key:'asin',label:'sin⁻¹'},{key:'acos',label:'cos⁻¹'},{key:'atan',label:'tan⁻¹'},
+   {key:'yroot',label:'ʸ√x'},{key:'cbrt',label:'³√x'},{key:'abs',label:'|x|'},
+   {key:'0',label:'0',span:2},{key:'.',label:'.'},{key:'+',label:'+'}],
+];
+
+const NaN_STR = 'NaN', INF = 'Infinity', MATH_ERROR = 'Math Error';
+const EMPTY = 0;          // their `strEmpty`, a NUMBER — the loose compares below rely on it
+const MAX_LENGTH = 8;     // their `maxLength`; a 9th typed character is refused
+
+// Their opCode numbering. The comparisons in press() are written against these
+// numbers rather than a precedence table, so the numbers themselves matter.
+const OP = {
+  '+': 1, '-': 2, '*': 3, '/': 4, 'mod': 5,
+  '^': 6, 'yroot': 7, 'logy': 8, 'Exp': 9,
+  /* 10 is "a bracket just closed" */ '%': 11,
+};
+
+// What each binary key appends to the expression line, and how many characters
+// `stackCheck` rubs out when you press two operators in a row.
+const OP_TEXT  = {'+':'+', '-':'-', '*':'*', '/':'/', 'mod':'mod',
+                  '^':'^', 'yroot':'yroot', 'logy':'logxBasey', 'Exp':'e+0', '%':'%'};
+// Keyed by the PREVIOUS operator's code: stackCheck runs before newOpCode is
+// reassigned, so what it rubs out is the operator already on the line.
+const OP_ERASE = {5: 3, 7: 5, 8: 9};
+
+const NUMERIC = /^[0-9.]$/;
+const MEMORY_KEYS = ['MC', 'MR', 'MS', 'M+', 'M-'];
+
+// The label a unary key writes into the expression line. Several of these are
+// hard-coded strings in their source that do not match the button's face.
+const UNARY_TEXT = {
+  recip: 'reciproc', sqr: 'sqr', sqrt: 'sqrt', cube: 'cube', cbrt: 'cuberoot',
+  ln: 'ln', log: 'log', exp: 'powe', pow10: 'powten', fact: 'fact',
+  abs: 'abs', log2: 'logXbase2',
+};
+// These take a trailing 'd' or 'r' for the angle mode — including the
+// hyperbolics, which have no angle unit at all. Their bug, kept.
+const UNARY_MODE_TEXT = {
+  sin: 'sin', cos: 'cos', tan: 'tan', asin: 'asin', acos: 'acos', atan: 'atan',
+  sinh: 'sinh', cosh: 'cosh', tanh: 'tanh',
+  asinh: 'sinh-1', acosh: 'cosh-1', atanh: 'tanh-1',
+};
+
+/**
+ * The rounding itself: the FEWEST decimal places that round-trip against eight
+ * more places, which is how 0.1+0.2 shows as 0.3 rather than
+ * 0.30000000000000004. Whole numbers lose their decimal point entirely.
+ */
+function roundValue(value) {
+  // No guard against a non-number on purpose. When their unwind loop pulls the
+  // literal "{" bracket marker into stackVal and concatenates it (see _equals),
+  // this call is `"{0".toFixed(8)` and throws a TypeError — which kills their
+  // click handler and leaves the display untouched. Reproducing the throw is
+  // the only way to reproduce that. See the '( ( =' test.
+  if (value.toFixed(8) % 1 != 0) {
+    let i = 1;
+    while (i < 10) {
+      if ((value.toFixed(i) != 0) && (value.toFixed(i) / value.toFixed(i + 8) == 1)) return value.toFixed(i);
+      i++;
+    }
+    return value;                                       // search exhausted: printed raw
+  }
+  return value.toFixed(0);
+}
+
+/**
+ * The formatter every BINARY result goes through: values outside 1e-8..1e8 are
+ * printed raw, everything else is rounded.
+ *
+ * The unary path guards differently — see _unary, where a trig result skips the
+ * range guard and is rounded anyway. That is what makes sin(180°) read a clean
+ * 0 instead of 1.2246467991473532e-16.
+ */
+function format(value) {
+  // Math.abs of a numeric string (a toPrecision result) is a number, so those
+  // return here untouched. Math.abs("{0") is NaN, which fails both comparisons
+  // and falls through to roundValue — where it throws, exactly as theirs does.
+  if (Math.abs(value) < 0.00000001 || Math.abs(value) > 100000000) return value;
+  return roundValue(value);
+}
+
+/** Their nthroot. The two branches of its `if` return the same thing. */
+function nthroot(x, n) {
+  const negate = n % 2 == 1 && x < 0;
+  if (negate) x = -x;
+  const possible = Math.pow(x, 1 / n);
+  return negate ? -possible : possible;
+}
+
+/** Lanczos, g=7 — the approximation their non-integer factorial falls back to. */
+function gamma(n) {
+  const p = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+             771.32342877765313, -176.61502916214059, 12.507343278686905,
+             -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+  if (n < 0.5) return Math.PI / Math.sin(n * Math.PI) / gamma(1 - n);
+  n--;
+  let x = p[0];
+  for (let i = 1; i < 9; i++) x += p[i] / (n + i);
+  const t = n + 7 + 0.5;
+  return Math.sqrt(2 * Math.PI) * Math.pow(t, n + 0.5) * Math.exp(-t) * x;
+}
+
+function factorial(n) {
+  if (n > 170) return INF;
+  if (n == 1 || n == 0) return 1;
+  if (n < 0) return MATH_ERROR;
+  if (n % 1 != 0) return gamma(n + 1);
+  return n * factorial(n - 1);
+}
+
+// ── trig, with their exact-value snapping ──────────────────────────────────
+// They special-case the multiples of π so that sin(180°) reads a clean 0 and
+// tan(90°) reads Math Error rather than 1.633e16.
+const toRadians = (mode, v) => mode === 'deg' ? v * (Math.PI / 180) : v;
+const fromRadians = (mode, v) => mode === 'deg' ? (180 / Math.PI) * v : v;
+
+function sinCalc(mode, v) {
+  const x = toRadians(mode, v);
+  return (x.toFixed(8) % Math.PI).toFixed(8) == 0 ? '0' : Math.sin(x);
+}
+function cosCalc(mode, v) {
+  const x = toRadians(mode, v);
+  if (x.toFixed(8) % (Math.PI / 2).toFixed(8) == 0) {
+    return (x.toFixed(8) / (Math.PI / 2)).toFixed(8) % 2 == 0 ? Math.cos(x) : '0';
+  }
+  return Math.cos(x);
+}
+function tanCalc(mode, v) {
+  const x = toRadians(mode, v);
+  if (x % (Math.PI / 2) == 0) return (x / (Math.PI / 2)) % 2 == 0 ? '0' : MATH_ERROR;
+  return Math.tan(x);
+}
+function inverseCalc(mode, fn, v) {
+  const r = fn(v);
+  // Their NaN test: "NaN".indexOf(r.toFixed(8)) > -1. NaN.toFixed(8) is "NaN".
+  return NaN_STR.indexOf(r.toFixed(8)) > -1 ? MATH_ERROR : fromRadians(mode, r);
+}
+
+class GateCalculator {
+  constructor({ angle = 'deg' } = {}) {
+    this.angle = angle;              // 'deg' | 'rad' — Degree by default
+    this.memory = 0;
+    this.clear();
+  }
+
+  static get layout() { return LAYOUT; }
+
+  /** The main box. Their inBox / #keyPad_UserInput. */
+  get display() { return this.input; }
+  /** The line above it. Their inBox1 / #keyPad_UserInput1. */
+  get expression() { return this.expr; }
+  get hasMemory() { return this.memory !== 0; }
+
+  clear() {
+    this.input = String(EMPTY);
+    this.expr = '';
+    this.opCode = 0;
+    this.newOpCode = 0;
+    this.stackVal = EMPTY;
+    this.stackArray = [];
+    this.opCodeArray = [];
+    this.openArray = [];
+    this.displayString = '';
+    this.trigDisplay = '';
+    this.boolClear = true;
+    this.stackVal1 = 1;
+    this.stackVal2 = 0;
+    this.trig = 0;
+    return this;
+  }
+
+  /** True once the display is stuck on an error; nearly every key then no-ops. */
+  get isStuck() {
+    return this.input.indexOf(INF) > -1 || this.input.indexOf(MATH_ERROR) > -1;
+  }
+
+  press(key) {
+    if (key === 'deg' || key === 'rad') { this.angle = key; return this; }
+    if (key === 'angle') { this.angle = this.angle === 'deg' ? 'rad' : 'deg'; return this; }
+
+    if (key === 'C') return this._allClear();
+    if (MEMORY_KEYS.includes(key)) return this._memory(key);
+    if (NUMERIC.test(key)) return this._numeric(key);
+    if (key === 'pi') return this._const(Math.PI);
+    if (key === 'e') return this._const(Math.E);
+    if (key === '=') return this._equals();
+    if (key === 'back') return this._back();
+    if (key === '(' || key === ')' || key in OP) return this._binary(key);
+    if (key in UNARY_TEXT || key in UNARY_MODE_TEXT || key === 'neg') return this._unary(key);
+
+    throw new Error(`unknown key: ${key}`);
+  }
+
+  /** Type a whole sequence at once — for tests and for diffing against theirs. */
+  static run(keys, opts) {
+    const c = new GateCalculator(opts);
+    for (const k of keys) {
+      // A press can throw a TypeError on a malformed sequence, which is what
+      // the official does too — the browser reports the dead click handler and
+      // the page carries on with the display unchanged. Swallow it so a replay
+      // behaves like a person pressing the keys. Anything else is a real bug.
+      try { c.press(k); } catch (e) { if (!(e instanceof TypeError)) throw e; }
+    }
+    return c;
+  }
+  static evaluate(keys, opts) { return GateCalculator.run(keys, opts).display; }
+
+  // ── data entry ───────────────────────────────────────────────────────────
+  _numeric(key) {
+    if (this.isStuck) return this;
+    if (this.boolClear) { this.input = String(EMPTY); this.boolClear = false; }
+    const str = this.input;
+    if (str.length > MAX_LENGTH) return this;
+
+    if (key === '.' && str.indexOf('.') >= 0 && this.expr != '') {
+      // Their odd recovery: a second dot with something on the top line
+      // restarts the entry at "0." and wipes the expression.
+      this.input = EMPTY + '.';
+      this.expr = '';
+      return this;
+    } else if (key === '.' && str.indexOf('.') >= 0) return this;
+
+    this._displayCheck();
+    // Loose != against the NUMBER 0 is what lets a leading "0" be replaced.
+    this.input = (str != EMPTY || str.length > 1 || key === '.') ? str + key : key;
+    this.stackVal1 = 1;
+    return this;
+  }
+
+  _const(value) {
+    if (this.isStuck) return this;
+    this._displayCheck();
+    this.stackVal1 = 1;
+    this.boolClear = true;      // π then a digit REPLACES π; it does not append
+    this.input = String(value);
+    return this;
+  }
+
+  _displayCheck() {
+    switch (this.stackVal1) {
+      case 2: this.expr = ''; break;
+      case 3:
+        this.expr = this.expr.substring(0, this.expr.length - this.trigDisplay.length);
+        this.stackVal2 = 4;
+        break;
+      case 5: {
+        let string = '';
+        for (let i = this.openArray.length; i >= 0; i--) {
+          string = string + this.displayString.substring(0, this.displayString.indexOf('(') + 1);
+          this.displayString = this.displayString.replace(string, '');
+        }
+        this.displayString = string.substring(0, string.lastIndexOf('('));
+        this.expr = this.displayString;
+        this.stackVal2 = 6;
+        break;
+      }
+      default: break;
+    }
+  }
+
+  // ── binary operators and brackets ────────────────────────────────────────
+  _binary(key) {
+    if (this.isStuck) return this;
+    const top = a => a[a.length - 1];
+    const openBrace = () => this.stackArray.length > 0 && top(this.stackArray) === '{';
+
+    if (key === '(') {
+      this.displayString = this.expr + '(';
+      this.newOpCode = 0;
+      this.input = String(EMPTY);
+      if (this.opCode != 0) this._opcodeChange();
+      this.openArray.push('{');
+      this.stackArray.push('{');
+      this.stackVal1 = 1;
+    } else if (key === ')') {
+      if (this.stackVal2 == 6) {
+        this.stackVal = parseFloat(this.input);
+        this.displayString = this.expr + this.input + ')';
+      } else if (this.newOpCode != 10) {
+        if (this.stackVal1 != 3) {
+          if (this.expr.indexOf('e+0') > -1 && this.input.indexOf('-') > -1) this.expr = this.expr.replace('e+0', 'e');
+          else if (this.expr.indexOf('e+0') > -1) this.expr = this.expr.replace('e+0', 'e+');
+          this.displayString = this.expr + this.input + ')';
+        } else this.displayString = this.expr + ')';
+      } else this.displayString = this.expr + ')';
+
+      if (!this.openArray[0]) return this;    // an unmatched ) does nothing at all
+      this.openArray.pop();
+      this.newOpCode = 10;
+      while (this.opCodeArray[0] || this.openArray[0]) {
+        if (top(this.stackArray) === '{') { this.stackArray.pop(); break; }
+        this._binaryOperation();
+        this.stackVal = top(this.stackArray);
+        if (this.stackVal === '{') { this.stackArray.pop(); this.opCode = 0; break; }
+        this.stackArray.pop();
+        this.opCode = top(this.opCodeArray);
+        this.opCodeArray.pop();
+        if (!this.opCodeArray[0] && this.stackArray.length > 0 && top(this.stackArray) !== '{') {
+          this.stackVal = top(this.stackArray);
+        }
+      }
+      this.stackVal2 = 1;
+      this.stackVal1 = 5;
+    } else {
+      const code = OP[key];
+      this._stackCheck(OP_TEXT[key]);      // still sees the PREVIOUS newOpCode
+      this.newOpCode = code;
+
+      // Their per-key precedence comparisons, transcribed one for one.
+      if (key === '+' || key === '-') {
+        if (this.opCode == 10 && openBrace()) this._opcodeChange();
+        this._operation();
+      } else if (key === '*') {
+        if (this.opCode == 1 || this.opCode == 2) this._opcodeChange();
+        if (this.opCode == 10) {
+          if (top(this.opCodeArray) < 3 || openBrace()) this._opcodeChange(); else this._operation();
+        }
+      } else if (key === '/') {
+        if (this.opCode < 4 && this.opCode) this._opcodeChange();
+        if (this.opCode == 10) {
+          if (top(this.opCodeArray) < 4 || this.stackVal1 == 5 || openBrace()) this._opcodeChange(); else this._operation();
+        }
+      } else if (key === 'mod') {
+        if (this.opCode == 1 || this.opCode == 2) this._opcodeChange();
+        // Their condition is `opCodeArray[last] == 1 || 2 || ...`, which is
+        // always true. Kept, because it changes what mod does after a bracket.
+        if (this.opCode == 10) this._opcodeChange();
+      } else if (key === 'logy') {
+        if (this.opCode == 1 || this.opCode == 2) this._opcodeChange();
+        if (this.opCode == 10) {
+          if (top(this.opCodeArray) < 3 || openBrace()) this._opcodeChange(); else this._operation();
+        }
+      } else {
+        // ^, yroot, Exp, % all share the "tighter than 6" comparison
+        if (this.opCode < 6 && this.opCode) this._opcodeChange();
+        if (this.opCode == 10) {
+          if (top(this.opCodeArray) < 6 || openBrace()) this._opcodeChange(); else this._operation();
+        }
+      }
+
+      if (key === 'Exp') { this.stackVal1 = 1; this.stackVal2 = 7; }
+      else this.stackVal1 = 0;
+    }
+
+    if (this.opCode) this._binaryOperation();
+    else { this.stackVal = parseFloat(this.input); this.boolClear = true; }
+    this.opCode = this.newOpCode;
+    this.expr = this.displayString;
+    return this;
+  }
+
+  _stackCheck(text) {
+    if (this.stackVal1 == 2) this.expr = '';
+    if (this.stackVal1 == 0) {
+      // Two operators in a row: rub the previous one off the line and replace it.
+      this.opCode = 0;
+      const x = OP_ERASE[this.newOpCode] || 1;
+      if (!(this.expr.indexOf('e+') > -1)) this.expr = this.expr.substring(0, this.expr.length - x);
+      this.stackVal2 = 2;
+    }
+    if (this.stackVal1 == 5 || this.stackVal2 == 2) {
+      this.stackVal2 = 0;
+      this.displayString = this.expr + text;
+    } else {
+      if (this.expr.indexOf('e+0') > -1 && this.input.indexOf('-') > -1) this.expr = this.expr.replace('e+0', 'e');
+      else if (this.expr.indexOf('e+0') > -1) this.expr = this.expr.replace('e+0', 'e+');
+      this.displayString = this.expr + this.input + text;
+    }
+  }
+
+  _operation() {
+    const top = a => a[a.length - 1];
+    while (this.opCodeArray[0] && this.opCode) {
+      if (this.opCode == 10) {
+        this.opCode = top(this.opCodeArray);
+        this.stackVal = top(this.stackArray);
+        if (this.newOpCode == 1 || this.newOpCode == 2 || this.newOpCode <= this.opCode) {
+          this.opCodeArray.pop(); this.stackArray.pop();
+        } else { this.opCode = 0; break; }
+      } else if (top(this.stackArray) === '{') {
+        break;
+      } else {
+        this._binaryOperation();
+        this.stackVal = top(this.stackArray);
+        if (this.stackVal === '{') { this.opCode = 0; break; }
+        this.opCode = top(this.opCodeArray);
+        if (this.newOpCode == 1 || this.newOpCode == 2 || this.newOpCode <= this.opCode) {
+          this.opCodeArray.pop(); this.stackArray.pop();
+        } else { this.opCode = 0; break; }
+        if (!this.opCodeArray[0] && this.stackArray.length > 0 && top(this.stackArray) !== '{') {
+          this.stackVal = top(this.stackArray);
+        }
+      }
+    }
+  }
+
+  _opcodeChange() {
+    if (this.opCode != 10 && this.opCode != 0) {
+      this.opCodeArray.push(this.opCode);
+      this.stackArray.push(this.stackVal);
+    }
+    if (this.opCode == 0) this.stackArray.push(this.stackVal);
+    this.opCode = 0;
+  }
+
+  /**
+   * Applies the pending operator. Note that `stackVal` keeps FULL precision —
+   * only the display is rounded — but the next operand is read back off the
+   * rounded display, so rounding still propagates through a chain.
+   */
+  _binaryOperation() {
+    const x2 = parseFloat(this.input);
+    switch (this.opCode) {
+      case 9: this.stackVal = parseFloat(this.stackVal) * Math.pow(10, x2); break;
+      case 1: this.stackVal += x2; break;
+      case 2: this.stackVal -= x2; break;
+      case 3: this.stackVal *= x2; break;
+      case 4: this.stackVal /= x2; break;
+      case 6: {
+        const base = this.stackVal;
+        this.stackVal = Math.pow(this.stackVal, x2);
+        // Powers of ten specifically get cut to 7 significant figures.
+        if (base == 10 && this.stackVal % 10 != 0 &&
+            (Math.abs(this.stackVal) < 0.00000001 || Math.abs(this.stackVal) > 100000000) && x2 % 1 == 0) {
+          this.stackVal = this.stackVal.toPrecision(7);
+        }
+        break;
+      }
+      case 5: this.stackVal = this.stackVal % x2; break;
+      case 7: this.stackVal = nthroot(this.stackVal, x2); break;
+      case 8: this.stackVal = Math.log(this.stackVal) / Math.log(x2); break;
+      case 11: this.stackVal = this.stackVal / 100 * x2; break;
+      case 0: this.stackVal = x2; break;
+      default: break;
+    }
+    this.input = String(format(this.stackVal));
+    this.boolClear = true;
+    this.trig = 0;
+  }
+
+  // ── unary keys: applied on the spot ──────────────────────────────────────
+  _unary(key) {
+    if (this.isStuck) return this;
+    const x = parseFloat(this.input);
+    const mode = this.angle;
+    let retVal;
+
+    switch (key) {
+      case 'neg':   retVal = -x; this.trig = 1; this.stackVal2 = 3; break;
+      case 'recip': retVal = 1 / x; break;
+      case 'sqr':   retVal = x * x; break;
+      case 'sqrt':  retVal = Math.sqrt(x); break;
+      case 'cube':  retVal = x * x * x; break;
+      case 'cbrt':  retVal = nthroot(x, 3); break;
+      case 'ln':    retVal = Math.log(x); break;
+      case 'log':   retVal = Math.log(x) / Math.LN10; break;
+      case 'exp':   retVal = Math.exp(x); break;
+      case 'abs':   retVal = Math.abs(x); break;
+      case 'log2':  retVal = Math.log(x) / Math.log(2); break;
+      case 'fact':  retVal = factorial(x); break;
+      case 'pow10':
+        retVal = Math.pow(10, x);
+        if (retVal % 10 != 0 && (Math.abs(retVal) < 0.00000001 || Math.abs(retVal) > 100000000) && x % 1 == 0) {
+          retVal = retVal.toPrecision(7);
+        }
+        break;
+      case 'sin':   retVal = sinCalc(mode, x); this.trig = 1; break;
+      case 'cos':   retVal = cosCalc(mode, x); this.trig = 1; break;
+      case 'tan':   retVal = tanCalc(mode, x); this.trig = 1; break;
+      case 'asin':  retVal = inverseCalc(mode, Math.asin, x); this.trig = 1; break;
+      case 'acos':  retVal = inverseCalc(mode, Math.acos, x); this.trig = 1; break;
+      case 'atan':  retVal = inverseCalc(mode, Math.atan, x); this.trig = 1; break;
+      // Written out with exponentials, as theirs are.
+      case 'sinh':  retVal = (Math.pow(Math.E, x) - Math.pow(Math.E, -x)) / 2; break;
+      case 'cosh':  retVal = (Math.pow(Math.E, x) + Math.pow(Math.E, -x)) / 2; break;
+      case 'tanh':  retVal = (Math.pow(Math.E, x) - Math.pow(Math.E, -x)) / (Math.pow(Math.E, x) + Math.pow(Math.E, -x)); break;
+      case 'asinh': retVal = Math.log(x + Math.sqrt(x * x + 1)); break;
+      case 'acosh': retVal = Math.log(x + Math.sqrt(x + 1) * Math.sqrt(x - 1)); break;
+      case 'atanh': retVal = 0.5 * (Math.log(1 + x) - Math.log(1 - x)); break;
+      default: break;
+    }
+
+    if (key !== 'neg') this._displayTrig(this._unaryText(key), x);
+
+    if (this.stackVal2 == 1) this.stackVal = retVal;
+    if (this.stackVal2 != 3) this.stackVal2 = 2;
+    this.stackVal1 = 3;
+    this.boolClear = true;
+
+    if (retVal == 0 || retVal == MATH_ERROR || retVal == INF) {
+      // printed as-is
+    } else if ((Math.abs(retVal) < 0.00000001 || Math.abs(retVal) > 100000000) && this.trig != 1) {
+      // printed raw — but trig and +/- results (trig == 1) fall through and get
+      // rounded even when they are tiny, which is what snaps sin(180°) to 0.
+    } else {
+      retVal = roundValue(retVal);
+    }
+    if (retVal == -0) retVal = 0;
+
+    this.input = String(retVal);
+    this.trig = 0;
+    this.expr = this.displayString;
+    return this;
+  }
+
+  _unaryText(key) {
+    if (key in UNARY_MODE_TEXT) return UNARY_MODE_TEXT[key] + (this.angle === 'deg' ? 'd' : 'r');
+    return UNARY_TEXT[key];
+  }
+
+  /** Their expression-line bookkeeping for unary keys, nesting and all. */
+  _displayTrig(text, x) {
+    if (this.stackVal2 == 1) {
+      let string = '';
+      for (let i = this.openArray.length; i >= 0; i--) {
+        string = string + this.displayString.substring(0, this.displayString.lastIndexOf('(') + 1);
+        this.displayString = this.displayString.replace(string, '');
+      }
+      this.displayString = string.substring(0, string.lastIndexOf('('));
+      this.trigDisplay = text + '(' + x + ')';
+    }
+    if (this.stackVal2 == 2 || this.stackVal1 == 3) {
+      if (this.stackVal2 == 3) { this.trigDisplay = text + '(' + x + ')'; this.stackVal2 = 2; }
+      else {
+        this.displayString = this.displayString.replace(this.trigDisplay, '');
+        this.trigDisplay = text + '(' + this.trigDisplay + ')';
+      }
+    } else {
+      if (this.stackVal2 == 4) this.displayString = '';
+      this.trigDisplay = text + '(' + x + ')';
+    }
+    this.displayString = this.displayString + this.trigDisplay;
+  }
+
+  // ── memory ───────────────────────────────────────────────────────────────
+  _memory(key) {
+    if (this.isStuck) return this;
+    let x = parseFloat(this.input);
+    if (this.input === '') x = 0;
+    let retVal = 0;
+    switch (key) {
+      case 'MS': this.memory = x; retVal = this.input; break;
+      case 'M+': this.memory = x + parseFloat(this.memory); retVal = this.input; break;
+      case 'M-': this.memory = parseFloat(this.memory) - x; retVal = this.input; break;
+      case 'MC': this.memory = 0; retVal = this.input; break;
+      case 'MR': retVal = parseFloat(this.memory); this.stackVal1 = 1; break;
+      default: break;
+    }
+    this.input = String(retVal);
+    this.boolClear = true;
+    return this;
+  }
+
+  // ── commands ─────────────────────────────────────────────────────────────
+  _equals() {
+    if (this.isStuck) return this;
+    const top = a => a[a.length - 1];
+    let strInput = this.input;          // captured BEFORE the stack unwinds
+
+    while (this.opCode || this.opCodeArray[0]) {
+      if (top(this.stackArray) === '{') this.stackArray.pop();
+      this._binaryOperation();
+      this.stackVal = top(this.stackArray);
+      this.opCode = top(this.opCodeArray);
+      this.stackArray.pop();
+      this.opCodeArray.pop();
+    }
+    this.opCode = 0;
+    this.displayString = '';
+    this.trigDisplay = '';
+    this.stackVal = EMPTY;
+    this.openArray = [];
+
+    if (this.stackVal1 != 2) {
+      if ((this.stackVal1 == 3 || this.stackVal2 == 1) && this.stackVal2 != 3) strInput = '';
+      if (this.newOpCode == 9) {
+        if (strInput.indexOf('-') > -1) this.expr = this.expr.substring(0, this.expr.lastIndexOf('+'));
+        else this.expr = this.expr.replace('e+0', 'e+');
+      }
+      this.expr = this.expr + strInput;
+    }
+    this.stackVal1 = 2;
+    this.newOpCode = 0;
+    this.stackVal2 = 0;
+    this.stackArray = [];
+    this.opCodeArray = [];
+    return this;
+  }
+
+  /** Backspace only bites while you are typing a number. */
+  _back() {
+    if (this.stackVal1 == 1 || this.stackVal2 == 3) {
+      if (this.input.length > 1) {
+        if (this.isStuck) return this;
+        this.input = this.input.substring(0, this.input.length - 1);
+        if (this.input === '-') this.input = '0';
+      } else {
+        this.input = '0';
+      }
+    }
+    return this;
+  }
+
+  /** C clears everything except the memory register. */
+  _allClear() {
+    const memory = this.memory;
+    this.clear();
+    this.memory = memory;
+    return this;
+  }
+}
+
+if (typeof module !== 'undefined') module.exports = { GateCalculator, LAYOUT, format, roundValue, factorial, nthroot };
+if (typeof window !== 'undefined') { window.GateCalculator = GateCalculator; window.LAYOUT = LAYOUT; }
+
+</script>
+
+<script>
+(function () {
+  var calc = new GateCalculator({ angle: 'deg' });
+  var log = [];
+  var pad = document.getElementById('pad');
+  var byKey = {};
+
+  var FACE = {
+    'asinh': 'sinh<span class="sup">-1</span>', 'acosh': 'cosh<span class="sup">-1</span>',
+    'atanh': 'tanh<span class="sup">-1</span>', 'asin': 'sin<span class="sup">-1</span>',
+    'acos': 'cos<span class="sup">-1</span>',   'atan': 'tan<span class="sup">-1</span>',
+    'log2': 'log<span class="sub">2</span>x',   'logy': 'log<span class="sub">y</span>x',
+    'exp': 'e<span class="sup">x</span>',       'pow10': '10<span class="sup">x</span>',
+    '^': 'x<span class="sup">y</span>',         'cube': 'x<span class="sup">3</span>',
+    'sqr': 'x<span class="sup">2</span>',       'yroot': '<span class="sup">y</span>√x',
+    'cbrt': '<span class="sup">3</span>√'
+  };
+  var SMALL = ['sinh','cosh','tanh','asinh','acosh','atanh','sin','cos','tan','asin','acos','atan'];
+
+  function key(k, label, cls, wide) {
+    var a = document.createElement('a');
+    a.href = '#';
+    a.className = 'k' + (cls ? ' ' + cls : '') + (wide ? ' wide' : '') +
+                  (SMALL.indexOf(k) > -1 ? ' min' : '');
+    a.innerHTML = FACE[k] || label;
+    a.dataset.key = k;                     // lets a test harness drive the pad
+    a.addEventListener('click', function (e) { e.preventDefault(); hit(k); });
+    byKey[k] = a;
+    return a;
+  }
+
+  GateCalculator.layout.forEach(function (row) {
+    var div = document.createElement('div');
+    div.className = 'calc_row';
+    row.forEach(function (cell) {
+      if (!cell || cell.key === '') {
+        var b = document.createElement('a');
+        b.className = 'k blank'; b.href = '#'; b.textContent = '.';
+        div.appendChild(b);
+        return;
+      }
+      if (cell.kind === 'radio') {
+        var g = document.createElement('div');
+        g.className = 'degree_radian';
+        ['deg', 'rad'].forEach(function (unit) {
+          var lab = document.createElement('label');
+          var input = document.createElement('input');
+          input.type = 'radio'; input.name = 'degree_or_radian'; input.value = unit;
+          input.checked = unit === 'deg';
+          input.addEventListener('change', function () { hit(unit); });
+          byKey[unit] = input;
+          lab.appendChild(input);
+          lab.appendChild(document.createTextNode(unit === 'deg' ? 'Deg' : 'Rad'));
+          g.appendChild(lab);
+        });
+        div.appendChild(g);
+        return;
+      }
+      if (cell.key === '=') {
+        document.getElementById('keyPad').appendChild(key('=', '=', 'enter'));
+        return;
+      }
+      div.appendChild(key(cell.key, cell.label, cell.kind === 'red' ? 'red' : '', cell.span === 2));
+    });
+    pad.appendChild(div);
+  });
+
+  function hit(k) {
+    // A press can throw a TypeError on a malformed sequence — the official does
+    // the same, its click handler dying with the display left untouched. Catch
+    // it and re-render what is already there. Keys all come from LAYOUT, so an
+    // unknown-key error cannot reach here.
+    try { calc.press(k); } catch (e) {}
+    log.push(k);
+    render();
+  }
+
+  function render() {
+    document.getElementById('exprBox').textContent = calc.expression;
+    document.getElementById('dispBox').textContent = calc.display;
+    document.getElementById('memory').classList.toggle('on', calc.hasMemory);
+    if (byKey.deg) byKey.deg.checked = calc.angle === 'deg';
+    if (byKey.rad) byKey.rad.checked = calc.angle === 'rad';
+    var el = document.getElementById('log');
+    el.textContent = log.length ? "['" + log.join("', '") + "']" : 'nothing pressed yet';
+    el.scrollTop = el.scrollHeight;
+  }
+
+  document.getElementById('reset').addEventListener('click', function () {
+    calc = new GateCalculator({ angle: 'deg' });
+    log = [];
+    render();
+  });
+  document.getElementById('copy').addEventListener('click', function () {
+    var btn = this, text = "['" + log.join("', '") + "']";
+    try {
+      navigator.clipboard.writeText(text).then(function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1200);
+      });
+    } catch (e) {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy'; }, 1200);
+    }
+  });
+
+  var KEYMAP = {
+    Enter: '=', '=': '=', Backspace: 'back', Escape: 'C', Delete: 'C',
+    '+': '+', '-': '-', '*': '*', '/': '/', '^': '^',
+    '(': '(', ')': ')', '.': '.', '%': '%'
+  };
+  // The official disables keyboard entry, and the Help panel says so. Matching
+  // it matters for practice: a candidate who trains on the keyboard finds it
+  // dead in the hall. Flip this to true if you want it back for quick testing.
+  var KEYBOARD_ENABLED = false;
+  document.addEventListener('keydown', function (e) {
+    if (!KEYBOARD_ENABLED) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var k = /^[0-9]$/.test(e.key) ? e.key : KEYMAP[e.key];
+    if (!k) return;
+    e.preventDefault();
+    hit(k);
+    var b = byKey[k];
+    if (b && b.classList) {
+      b.classList.add('flash');
+      setTimeout(function () { b.classList.remove('flash'); }, 110);
+    }
+  });
+
+  // ── Help panel ─────────────────────────────────────────────────────────
+  var keyPadEl = document.getElementById('keyPad');
+  function showHelp(on) {
+    keyPadEl.classList.toggle('help-open', on);
+    if (on) document.getElementById('helpContent').scrollTop = 0;
+  }
+  ['helpBtn', 'helpBack'].forEach(function (id) {
+    var el = document.getElementById(id);
+    var on = id === 'helpBtn';
+    el.addEventListener('click', function () { showHelp(on); });
+    el.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showHelp(on); }
+    });
+  });
+
+  render();
+})();
+</script>
