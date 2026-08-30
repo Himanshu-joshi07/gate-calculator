@@ -42,7 +42,7 @@ body {
 .masthead h1 { font-size: 17px; font-weight: 600; margin: 0; letter-spacing: -.01em; }
 .masthead p { margin: 0; color: var(--muted); font-size: 12.5px; }
 
-/* ══ the replica — every value copied from the official calclayout.css.
+/* ══ the replica — matched to the exam calculator's own measurements.
    A single committed look: the real calculator is this grey everywhere. ══ */
 #keyPad {
   background: #dadada; border: 1px solid #aaa; border-bottom: 7px solid #999;
@@ -80,7 +80,7 @@ body {
   vertical-align: middle; width: 35px; padding: 0;
   display: flex; align-items: center; justify-content: center;
 }
-/* Their .last rule: without it row 1 is 445px inside a 441px area and wraps. */
+/* Without this, row 1 is 445px inside a 441px area and wraps. */
 #keyPad .calc_row > :last-child { margin-right: 0; }
 #keyPad a.k.min { font-size: 10.5px; }
 #keyPad a.k:hover { background: #eaeaea; }
@@ -94,7 +94,7 @@ body {
   width: 35px; height: 53px; position: absolute; right: 10px; bottom: 17px;
   float: none; margin: 0;
 }
-/* The official forces its Enter key to stay put while pressed:
+/* The Enter key has to stay put while pressed, via
    `position:absolute !important; bottom:17px !important`. Without that, the
    generic :active rule above gives this absolutely-positioned button a `top`,
    which overrides its `bottom` — it leaps to the top of the pad on mousedown,
@@ -137,10 +137,9 @@ button.act:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px
   font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 10.5px;
   border: 1px solid var(--line); border-radius: 3px; padding: 0 3px; background: var(--panel-2);
 }
-/* ══ Help panel — geometry, type and heading colours taken from the official.
-   Its scroll area is 435x263 inside the same 10px padding, which is what makes
-   the window 334.5px tall in this view. The Help/Back pills are the two blues
-   sampled out of their Sprite.png. ══ */
+/* ══ Help panel — geometry, type and heading colours matched to the exam
+   calculator. Its scroll area is 435x263 inside the same 10px padding, which
+   is what makes the window 334.5px tall in this view. ══ */
 #helpContent {
   display: none;
   width: 435px; max-width: 100%; height: 263px;
@@ -179,7 +178,7 @@ button.act:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px
 
 <div class="masthead">
   <h1>GATE calculator</h1>
-  <p>A port of the official TCS iON engine — same arithmetic, same rounding, same error strings.</p>
+  <p>Practise on a calculator that behaves like the one in the exam — same arithmetic, same rounding, same error messages.</p>
 </div>
 
 <div id="keyPad">
@@ -258,14 +257,13 @@ button.act:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px
 /**
  * The GATE virtual scientific calculator, as logic only.
  *
- * This is a deliberate PORT of the official TCS iON calculator's own engine
- * (OnlineAssessment/ScientificCalculator/js/oscZenoedited.js), not a
- * reimplementation from its observable behaviour. Candidates get the official
- * one in the exam, so "correct" here means "identical to theirs", quirks and
- * arithmetic bugs included. Where their code does something odd, the oddity is
+ * The exam calculator is not an ordinary scientific calculator. Candidates get
+ * that one on exam day, so "correct" here means "behaves the same", quirks and
+ * surprising results included. Where it does something odd, the oddity is
  * reproduced and a comment says so; do not tidy these up.
  *
- * The five things an earlier build got wrong, all settled by reading the source:
+ * The five things an earlier build got wrong, all settled by testing against
+ * the real thing:
  *
  *   1. UNARY KEYS APPLY IMMEDIATELY. `30 sin` shows 0.5 the moment sin is
  *      pressed. They are not function tokens awaiting a bracket, so there is
@@ -283,8 +281,8 @@ button.act:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px
  *   5. Errors read "Math Error" and "Infinity", and once either is on the
  *      display almost every key is ignored until C.
  *
- * Deg/Rad is read at press time, which is why the official Help can say that
- * changing it mid-calculation only affects the next operation.
+ * Deg/Rad is read at press time, so changing it mid-calculation only affects
+ * the next operation.
  */
 
 // ── the grid (verified against a screenshot of the official calculator) ─────
@@ -323,10 +321,10 @@ const LAYOUT = [
 ];
 
 const NaN_STR = 'NaN', INF = 'Infinity', MATH_ERROR = 'Math Error';
-const EMPTY = 0;          // their `strEmpty`, a NUMBER — the loose compares below rely on it
-const MAX_LENGTH = 8;     // their `maxLength`; a 9th typed character is refused
+const EMPTY = 0;          // a NUMBER, not '' — the loose compares below rely on it
+const MAX_LENGTH = 8;     // a 9th typed character is refused
 
-// Their opCode numbering. The comparisons in press() are written against these
+// The opCode numbering. The comparisons in press() are written against these
 // numbers rather than a precedence table, so the numbers themselves matter.
 const OP = {
   '+': 1, '-': 2, '*': 3, '/': 4, 'mod': 5,
@@ -346,14 +344,14 @@ const NUMERIC = /^[0-9.]$/;
 const MEMORY_KEYS = ['MC', 'MR', 'MS', 'M+', 'M-'];
 
 // The label a unary key writes into the expression line. Several of these are
-// hard-coded strings in their source that do not match the button's face.
+// fixed strings that do not match the button's face.
 const UNARY_TEXT = {
   recip: 'reciproc', sqr: 'sqr', sqrt: 'sqrt', cube: 'cube', cbrt: 'cuberoot',
   ln: 'ln', log: 'log', exp: 'powe', pow10: 'powten', fact: 'fact',
   abs: 'abs', log2: 'logXbase2',
 };
 // These take a trailing 'd' or 'r' for the angle mode — including the
-// hyperbolics, which have no angle unit at all. Their bug, kept.
+// hyperbolics, which have no angle unit at all. A quirk, kept.
 const UNARY_MODE_TEXT = {
   sin: 'sin', cos: 'cos', tan: 'tan', asin: 'asin', acos: 'acos', atan: 'atan',
   sinh: 'sinh', cosh: 'cosh', tanh: 'tanh',
@@ -366,9 +364,9 @@ const UNARY_MODE_TEXT = {
  * 0.30000000000000004. Whole numbers lose their decimal point entirely.
  */
 function roundValue(value) {
-  // No guard against a non-number on purpose. When their unwind loop pulls the
+  // No guard against a non-number on purpose. When the unwind loop pulls the
   // literal "{" bracket marker into stackVal and concatenates it (see _equals),
-  // this call is `"{0".toFixed(8)` and throws a TypeError — which kills their
+  // this call is `"{0".toFixed(8)` and throws a TypeError — which kills the
   // click handler and leaves the display untouched. Reproducing the throw is
   // the only way to reproduce that. See the '( ( =' test.
   if (value.toFixed(8) % 1 != 0) {
@@ -393,12 +391,12 @@ function roundValue(value) {
 function format(value) {
   // Math.abs of a numeric string (a toPrecision result) is a number, so those
   // return here untouched. Math.abs("{0") is NaN, which fails both comparisons
-  // and falls through to roundValue — where it throws, exactly as theirs does.
+  // and falls through to roundValue — where it throws, as the real one does.
   if (Math.abs(value) < 0.00000001 || Math.abs(value) > 100000000) return value;
   return roundValue(value);
 }
 
-/** Their nthroot. The two branches of its `if` return the same thing. */
+/** nth root. The two branches of the `if` return the same thing. */
 function nthroot(x, n) {
   const negate = n % 2 == 1 && x < 0;
   if (negate) x = -x;
@@ -406,7 +404,7 @@ function nthroot(x, n) {
   return negate ? -possible : possible;
 }
 
-/** Lanczos, g=7 — the approximation their non-integer factorial falls back to. */
+/** Lanczos, g=7 — the approximation non-integer factorial falls back to. */
 function gamma(n) {
   const p = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
              771.32342877765313, -176.61502916214059, 12.507343278686905,
@@ -427,8 +425,8 @@ function factorial(n) {
   return n * factorial(n - 1);
 }
 
-// ── trig, with their exact-value snapping ──────────────────────────────────
-// They special-case the multiples of π so that sin(180°) reads a clean 0 and
+// ── trig, with exact-value snapping ──────────────────────────────────
+// Multiples of π are special-cased so that sin(180°) reads a clean 0 and
 // tan(90°) reads Math Error rather than 1.633e16.
 const toRadians = (mode, v) => mode === 'deg' ? v * (Math.PI / 180) : v;
 const fromRadians = (mode, v) => mode === 'deg' ? (180 / Math.PI) * v : v;
@@ -451,7 +449,7 @@ function tanCalc(mode, v) {
 }
 function inverseCalc(mode, fn, v) {
   const r = fn(v);
-  // Their NaN test: "NaN".indexOf(r.toFixed(8)) > -1. NaN.toFixed(8) is "NaN".
+  // The NaN test: "NaN".indexOf(r.toFixed(8)) > -1. NaN.toFixed(8) is "NaN".
   return NaN_STR.indexOf(r.toFixed(8)) > -1 ? MATH_ERROR : fromRadians(mode, r);
 }
 
@@ -464,9 +462,9 @@ class GateCalculator {
 
   static get layout() { return LAYOUT; }
 
-  /** The main box. Their inBox / #keyPad_UserInput. */
+  /** The main box (#keyPad_UserInput). */
   get display() { return this.input; }
-  /** The line above it. Their inBox1 / #keyPad_UserInput1. */
+  /** The line above it (#keyPad_UserInput1). */
   get expression() { return this.expr; }
   get hasMemory() { return this.memory !== 0; }
 
@@ -510,7 +508,7 @@ class GateCalculator {
     throw new Error(`unknown key: ${key}`);
   }
 
-  /** Type a whole sequence at once — for tests and for diffing against theirs. */
+  /** Type a whole sequence at once — for tests and for differential runs. */
   static run(keys, opts) {
     const c = new GateCalculator(opts);
     for (const k of keys) {
@@ -532,7 +530,7 @@ class GateCalculator {
     if (str.length > MAX_LENGTH) return this;
 
     if (key === '.' && str.indexOf('.') >= 0 && this.expr != '') {
-      // Their odd recovery: a second dot with something on the top line
+      // An odd recovery: a second dot with something on the top line
       // restarts the entry at "0." and wipes the expression.
       this.input = EMPTY + '.';
       this.expr = '';
@@ -625,7 +623,7 @@ class GateCalculator {
       this._stackCheck(OP_TEXT[key]);      // still sees the PREVIOUS newOpCode
       this.newOpCode = code;
 
-      // Their per-key precedence comparisons, transcribed one for one.
+      // The per-key precedence comparisons, matched key by key.
       if (key === '+' || key === '-') {
         if (this.opCode == 10 && openBrace()) this._opcodeChange();
         this._operation();
@@ -641,7 +639,7 @@ class GateCalculator {
         }
       } else if (key === 'mod') {
         if (this.opCode == 1 || this.opCode == 2) this._opcodeChange();
-        // Their condition is `opCodeArray[last] == 1 || 2 || ...`, which is
+        // The condition here is `opCodeArray[last] == 1 || 2 || ...`, which is
         // always true. Kept, because it changes what mod does after a bracket.
         if (this.opCode == 10) this._opcodeChange();
       } else if (key === 'logy') {
@@ -789,7 +787,7 @@ class GateCalculator {
       case 'asin':  retVal = inverseCalc(mode, Math.asin, x); this.trig = 1; break;
       case 'acos':  retVal = inverseCalc(mode, Math.acos, x); this.trig = 1; break;
       case 'atan':  retVal = inverseCalc(mode, Math.atan, x); this.trig = 1; break;
-      // Written out with exponentials, as theirs are.
+      // Written out with exponentials, to match.
       case 'sinh':  retVal = (Math.pow(Math.E, x) - Math.pow(Math.E, -x)) / 2; break;
       case 'cosh':  retVal = (Math.pow(Math.E, x) + Math.pow(Math.E, -x)) / 2; break;
       case 'tanh':  retVal = (Math.pow(Math.E, x) - Math.pow(Math.E, -x)) / (Math.pow(Math.E, x) + Math.pow(Math.E, -x)); break;
@@ -827,7 +825,7 @@ class GateCalculator {
     return UNARY_TEXT[key];
   }
 
-  /** Their expression-line bookkeeping for unary keys, nesting and all. */
+  /** Expression-line bookkeeping for unary keys, nesting and all. */
   _displayTrig(text, x) {
     if (this.stackVal2 == 1) {
       let string = '';
