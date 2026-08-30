@@ -47,7 +47,7 @@ body {
 #keyPad {
   background: #dadada; border: 1px solid #aaa; border-bottom: 7px solid #999;
   border-radius: 5px; box-shadow: 0 0 15px 0 rgba(0,0,0,.1) inset;
-  width: 463px; max-width: 100%; padding: 0; position: relative;
+  width: 463px; padding: 0; position: relative;
   font-family: Arial, Helvetica, sans-serif; color: #444;
   -webkit-user-select: none; user-select: none; flex: none;
 }
@@ -63,7 +63,7 @@ body {
 .keyPad_TextBox, .keyPad_TextBox1 {
   background: #fff; border-color: #aaa; border-style: solid; border-width: 1px 1px 3px;
   border-radius: 3px; font-size: 20px; height: 30px; line-height: 30px;
-  text-align: right; text-indent: 10px; width: 434px; max-width: 100%; display: block;
+  text-align: right; text-indent: 10px; width: 434px; display: block;
   margin-bottom: 7px; padding-right: 5px; color: #000;
   font-family: Arial, Helvetica, sans-serif; overflow: hidden; white-space: nowrap;
 }
@@ -111,7 +111,8 @@ body {
 
 /* ══ the strip underneath, for reporting anything that looks wrong ══ */
 .tray {
-  width: 463px; max-width: 100%;
+  /* Plain text, so unlike the pad this one can just shrink to the screen. */
+  width: min(463px, 100%);
   display: flex; flex-direction: column; gap: 7px;
 }
 .tray .label {
@@ -142,7 +143,7 @@ button.act:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px
    is what makes the window 334.5px tall in this view. ══ */
 #helpContent {
   display: none;
-  width: 435px; max-width: 100%; height: 263px;
+  width: 435px; height: 263px;
   overflow-y: auto; overflow-x: hidden;
   padding: 10px; margin-right: 6px;
   font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #000;
@@ -1077,6 +1078,23 @@ if (typeof window !== 'undefined') { window.GateCalculator = GateCalculator; win
   });
 
   render();
+})();
+</script>
+<script>
+/* The pad is a fixed-geometry replica: 463px is not a preference, it is what
+   makes the rows line up. Reflowing it on a narrow screen wraps the rows and
+   looks broken, so scale the whole thing down to fit instead. `zoom` rather
+   than `transform` because zoom affects layout, so the page below it moves up
+   to meet the smaller pad instead of leaving a hole. */
+(function () {
+  var pad = document.getElementById('keyPad'), NATURAL = 463;
+  function fit() {
+    var avail = document.documentElement.clientWidth - 32;   // body's 16px sides
+    var scale = avail / NATURAL;
+    pad.style.zoom = scale < 1 ? scale : '';
+  }
+  fit();
+  addEventListener('resize', fit);
 })();
 </script>
 </body>
